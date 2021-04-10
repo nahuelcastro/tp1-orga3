@@ -9,6 +9,11 @@ struct product{
     unsigned int resistance;
 };
 
+
+// flag podas
+bool optimalidad = false;
+bool factibilidad = true;
+
 // jambotubo
 unsigned int quantity_products;
 unsigned int resistance; // resistencia total del tubo
@@ -16,6 +21,11 @@ unsigned int resistance; // resistencia total del tubo
 vector<bool> mask_products;
 vector<product> products;
 unsigned int result;
+
+unsigned int partial_products = 0;
+
+// aux: despues borrar, es solo para pruebas
+int aux_count = 0;
 
 // O(n)
 unsigned int quantity_products_jambotubo(){
@@ -28,8 +38,9 @@ unsigned int quantity_products_jambotubo(){
     return acum;
 }
 
+
 // O(n)
-bool jambotube_broke(){
+bool jambotube_broke(int n){
     unsigned int local_resistance = 0;
     unsigned int local_weight = 0;
     unsigned int total_weight = 0;
@@ -40,7 +51,7 @@ bool jambotube_broke(){
     vector<product> products_copy = products;
 
     //creo un vector partial_products que va a contener <resistencia, peso acumulado> con todos los productos que tengo puestos
-    for (int i = 0; i < quantity_products ; ++i) {
+    for (int i = 0; i < n ; ++i) {
         if (mask_products[i]) {
             total_weight += products[i].weight;
             product actual_product = products[i];
@@ -66,10 +77,11 @@ bool jambotube_broke(){
     return false;
 }
 
+
 // O( 2n.(2^n) )  =  O( n . (2^n) )  (lo unico, ver bien el tema de que la complejidad sea con la multiplicación)
 void brute_force(int i = 0){
 
-    unsigned int quantity_products_copy = quantity_products;
+    aux_count ++;
 
     if (i == quantity_products){
 
@@ -78,10 +90,10 @@ void brute_force(int i = 0){
         vector<product> products_copy = products;
         unsigned int result_copy = result;
 
-        cout << jambotube_broke() << endl;  // borrar despues
+        cout << jambotube_broke(i) << endl;  // borrar despues
 
         // O(2.n)
-        if (not jambotube_broke()){                                         //O(n)
+        if (not jambotube_broke(i)){                                         //O(n)
             unsigned int local_result = 0;
             local_result = quantity_products_jambotubo();                   //O(n)
             result = (local_result > result)? local_result : result;
@@ -92,12 +104,59 @@ void brute_force(int i = 0){
         // no se si hay un = mask_products[i] = false; de mas (posiblemente si)
         mask_products[i] = false;
         brute_force(i + 1);
+
         mask_products[i] = true;
         brute_force(i + 1);
-        mask_products[i] = false;
     }
 }
 
+
+void backtracking(int i = 0){
+
+    // solo para ver de antemano que tan optimo parece ser, despues se borra
+    aux_count ++;
+
+    // estas 3 variables despues borrar, son para poder debugear estas variables locales nomas
+    vector<bool> mask_products_copy = mask_products;
+    vector<product> products_copy = products;
+    unsigned int result_copy = result;
+    unsigned int partial_products_copy = partial_products;
+    unsigned  int quantity_products_copy = quantity_products;
+
+
+//    //poda factibilidad O(n)
+    if (factibilidad) {
+        if (jambotube_broke(i)) return;
+    }
+
+    // optimalidad me huele raro
+    //poda optimalidad O(1)
+    if (optimalidad) {
+        unsigned int max_possible_res = partial_products + quantity_products - i;
+        if (max_possible_res <= result) return;
+    }
+
+
+    if (i == quantity_products){
+
+        // O(2.n)
+        if (not jambotube_broke(i)){                                         //O(n)
+            unsigned int local_result = 0;
+            local_result = quantity_products_jambotubo();                   //O(n)
+            result = (local_result > result)? local_result : result;
+        }
+
+    } else {
+
+        // no se si hay un = mask_products[i] = false; de mas (posiblemente si)
+        mask_products[i] = false;
+        backtracking(i + 1);
+
+        partial_products ++;
+        mask_products[i] = true;
+        backtracking(i + 1);
+    }
+}
 
 
 int main() {
@@ -117,8 +176,53 @@ int main() {
         mask_products.push_back(false);
     }
 
+//    brute_force();
+//    cout << "result: "<< result << endl;
 
-    brute_force();
+    backtracking();
     cout << "result: "<< result << endl;
+
+    cout << "entro: "<< aux_count << " veces"<< endl;
+
+
+
     return 0;
 }
+
+/*  
+
+5 50
+10 45
+20 8
+30 15
+10 2
+15 30
+
+20 50
+10 45
+20 8
+30 15
+10 2
+15 30
+10 45
+20 8
+30 15
+10 2
+15 30
+10 45
+20 8
+30 15
+10 2
+15 30
+10 45
+20 8
+30 15
+10 2
+15 30
+
+ result: 5
+entro: 2097151 veces
+
+
+ */
+
